@@ -1,7 +1,7 @@
 """
-01_load_data.py - Load Home Credit CSV tables into DuckDB
-Reads all 7 raw CSV files from data/ and creates a persistent DuckDB
-database at artifacts/credit_risk.duckdb with indexed join columns.
+01_load_data.py - Loads Home Credit CSV tables into DuckDB
+Reads all 8 raw CSV files from data/ and creates a persistent DuckDB
+database at artifacts/credit_risk.duckdb.
 """
 
 import duckdb
