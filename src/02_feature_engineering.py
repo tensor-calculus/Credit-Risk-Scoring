@@ -80,7 +80,7 @@ def print_missingness_report(df: pd.DataFrame) -> None:
         print("  No missing values found.")
         return
 
-    print(f"{'Column':<45} {'Missing':>10} {'Pct':>8} Type")
+    print(f"  {'Column':<45} {'Missing':>10} {'Pct':>8}")
     print("-" * 70)
 
     for col in missing_cols.index[:50]:  # Show top 50
