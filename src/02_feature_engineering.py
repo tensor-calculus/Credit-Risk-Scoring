@@ -70,7 +70,7 @@ def handle_sentinel_values(df: pd.DataFrame) -> pd.DataFrame:
 def print_missingness_report(df: pd.DataFrame) -> None:
     """Print missingness assessment for columns with missing values."""
     print("\n" + "=" * 70)
-    print("Missingness Report")
+    print("  Missingness Report")
     print("=" * 70)
     missing = df.isnull().sum()
     missing_pct = (missing / len(df) * 100).round(2)
@@ -80,57 +80,26 @@ def print_missingness_report(df: pd.DataFrame) -> None:
         print("  No missing values found.")
         return
 
-    print(f"{'Column':<45} {'Missing':>10} {'Pct':>8}  Type")
-    print("-" * 80)
+    print(f"{'Column':<45} {'Missing':>10} {'Pct':>8} Type")
+    print("-" * 70)
 
-    # Missingness type classification:
-    # - MCAR (Missing Completely at Random): housing features - missing for non-homeowners
-    # - MAR  (Missing at Random): bureau/prev features - missing because client had no prior credit
-    # - MNAR (Missing Not at Random): OWN_CAR_AGE - missing because they don't own a car (value itself determines missingness)
     for col in missing_cols.index[:50]:  # Show top 50
         n = missing_cols[col]
         pct = missing_pct[col]
-
-        # Classify missingness type
-        if col.startswith("BUREAU_") or col.startswith("PREV_") or col.startswith("INST_") or \
-           col.startswith("POS_") or col.startswith("CC_"):
-            mtype = "MAR"   # Missing because no prior loans/bureau records
-        elif "APARTMENT" in col or "BASEMENT" in col or "LIVING" in col or \
-             "FLOOR" in col or "LAND" in col or "NONLIVING" in col or \
-             "COMMONAREA" in col or "ELEVATOR" in col or "ENTRANCE" in col or \
-             "FONDKAPREMONT" in col or "HOUSETYPE" in col or "WALLSMATERIAL" in col or \
-             "EMERGENCYSTATE" in col or "TOTALAREA" in col or "YEARS_BUILD" in col or \
-             "YEARS_BEGINEXPLUATATION" in col:
-            mtype = "MCAR"  # Housing info missing for non-homeowners
-        elif col == "OWN_CAR_AGE":
-            mtype = "MNAR"  # Missing because no car owned
-        elif col in ("EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3"):
-            mtype = "MAR"   # External score not available for all applicants
-        elif col == "OCCUPATION_TYPE":
-            mtype = "MAR"   # Occupation not reported
-        else:
-            mtype = "MAR"   # Default assumption
-
-        print(f"  {col:<43} {n:>10,} {pct:>7.1f}%  {mtype}")
+        print(f"  {col:<43} {n:>10,} {pct:>7.1f}%")
 
 
 def main() -> None:
-    print(f"Connecting to DuckDB: {DB_PATH}\n")
+    logging.info(f"Connecting to DuckDB: {DB_PATH}")
     con = duckdb.connect(str(DB_PATH))
 
-    print("=" * 60)
-    print("Executing Feature Engineering SQL Queries")
-    print("=" * 60)
+    logging.info("Executing Feature Engineering SQL Queries ...")
     execute_feature_queries(con)
 
-    print("\n" + "=" * 60)
-    print("Building Final Feature Matrix")
-    print("=" * 60)
+    logging.info("Building Final Feature Dataset ...")
     df = build_final_dataset(con)
 
-    print("\n" + "=" * 60)
-    print("Handling Sentinel Values (365243 -> NaN)")
-    print("=" * 60)
+    logging.info("Handling Sentinel Values (365243 -> NaN) ...")
     df = handle_sentinel_values(df)
 
     print_missingness_report(df)
@@ -138,20 +107,19 @@ def main() -> None:
     # Save to parquet
     output_path = ARTIFACTS_DIR / "features.parquet"
     df.to_parquet(output_path, index=False)
-    print(f"\nFeature matrix saved to {output_path}")
-    print(f"Shape: {df.shape[0]:,} rows x {df.shape[1]} columns")
-
+    logging.info(f"Feature dataset saved to {output_path}")
+    
     # Summary statistics
-    print("\n" + "=" * 60)
-    print("Target Distribution")
-    print("=" * 60)
+    print("=" * 70)
+    print("  Target Distribution")
+    print("=" * 70)
     target_counts = df["TARGET"].value_counts()
     total = len(df)
     for val, cnt in target_counts.items():
-        print(f"  TARGET={val}: {cnt:>8,}  ({cnt/total*100:.1f}%)")
+        print(f"  TARGET={val} : {cnt:>8,} ({cnt/total*100:.1f}%)")
 
     con.close()
-    print("\nDone.")
+    logging.info("Done.")
 
 
 if __name__ == "__main__":
