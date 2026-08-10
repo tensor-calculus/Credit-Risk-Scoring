@@ -1,5 +1,5 @@
 """
-app.py — Credit Risk Scoring Dashboard
+app.py - Credit Risk Scoring Dashboard
 Two-tab dashboard:
   Tab 1: Applicant Lookup - score, risk band, SHAP waterfall
   Tab 2: Portfolio View  - score distribution, PSI, risk breakdown, model metrics
@@ -114,7 +114,7 @@ except Exception:
 
 # Main content
 st.title("Credit Risk Scoring Dashboard")
-tab1, tab2 = st.tabs(["👤 Applicant Lookup", "📊 Portfolio View"])
+tab1, tab2 = st.tabs(["Applicant Lookup", "Portfolio View"])
 
 
 # ===== TAB 1: Applicant Lookup =====
@@ -125,17 +125,27 @@ with tab1:
         feature_names = load_feature_names()
         features_df = load_features()
 
-        # Example applicant selector
-        sample_ids = test_scores["SK_ID_CURR"].head(10).tolist()
+        # Build dropdown from SHAP sample so waterfall plots always work
+        try:
+            shap_vals, shap_idx = load_shap_values()
+            shap_ids = test_scores.iloc[shap_idx]["SK_ID_CURR"].tolist()
+            sample_ids = shap_ids[:10]
+        except Exception:
+            sample_ids = test_scores["SK_ID_CURR"].head(10).tolist()
+
+        valid_id_example = sample_ids[0] if sample_ids else "N/A"
+        id_min = int(test_scores["SK_ID_CURR"].min())
+        id_max = int(test_scores["SK_ID_CURR"].max())
+
         col1, col2 = st.columns([2, 1])
         with col1:
             applicant_id_input = st.text_input(
                 "Enter Applicant ID (SK_ID_CURR)",
-                placeholder="e.g., 100001",
+                placeholder=f"e.g., {valid_id_example}  (range: {id_min}–{id_max})",
             )
         with col2:
             selected_example = st.selectbox(
-                "Or select an example",
+                "Or select an example (SHAP-ready)",
                 options=[""] + [str(x) for x in sample_ids],
                 index=0,
             )
@@ -216,8 +226,7 @@ with tab1:
                         model = load_model()
                         explainer = shap_lib.TreeExplainer(model)
                         expected_value = explainer.expected_value
-                        if isinstance(expected_value, (list, np.ndarray)):
-                            expected_value = expected_value[1]
+                        expected_value = float(np.atleast_1d(expected_value)[-1])
 
                         sv = shap_values[shap_pos[0]]
                         explanation = shap_lib.Explanation(
