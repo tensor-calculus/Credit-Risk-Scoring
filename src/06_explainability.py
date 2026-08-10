@@ -97,8 +97,7 @@ def main() -> None:
     if len(default_indices) > 0:
         idx = default_indices[0]
         expected_value = explainer.expected_value
-        if isinstance(expected_value, (list, np.ndarray)):
-            expected_value = expected_value[1]  # Class 1
+        expected_value = float(np.atleast_1d(expected_value)[-1])
 
         explanation = shap.Explanation(
             values=shap_values_pos[idx],
@@ -117,8 +116,7 @@ def main() -> None:
     if len(non_default_indices) > 0:
         idx = non_default_indices[0]
         expected_value = explainer.expected_value
-        if isinstance(expected_value, (list, np.ndarray)):
-            expected_value = expected_value[1]
+        expected_value = float(np.atleast_1d(expected_value)[-1])
 
         explanation = shap.Explanation(
             values=shap_values_pos[idx],
