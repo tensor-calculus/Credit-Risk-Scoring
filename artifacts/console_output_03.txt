@@ -1,0 +1,39 @@
+(.venv) C:\Users\rnine\Desktop\HCDProject>c:\Users\rnine\Desktop\HCDProject\.venv\Scripts\python.exe c:/Users/rnine/Desktop/HCDProject/src/03_preprocessing.py
+2026-08-04 22:09:09,766 - INFO - Loading features from C:\Users\rnine\Desktop\HCDProject\artifacts\features.parquet
+2026-08-04 22:09:10,765 - INFO - Shape: 307,511 rows x 180 columns
+
+======================================================================
+ Leakage Audit
+======================================================================
+2026-08-04 22:09:20,931 - INFO - No single feature has AUC > 0.99 against TARGET
+2026-08-04 22:09:20,932 - INFO - Separating features & target ...
+2026-08-04 22:09:21,050 - INFO - Features: 178 columns
+2026-08-04 22:09:21,050 - INFO - Target: 307,511 samples
+======================================================================
+  Column Types: 
+======================================================================
+  Numeric features:             162
+  Low-cardinality categorical:  13 (< 10 unique values)
+  High-cardinality categorical: 2 (>= 10 unique values)
+High Cardinality Columns:
+----------------------------------------------------------------------
+  OCCUPATION_TYPE: 18 unique values
+  ORGANIZATION_TYPE: 58 unique values
+2026-08-04 22:09:21,567 - INFO - Calculating Train/Test split (80/20, stratified) ...
+2026-08-04 22:09:22,352 - INFO - Train: 246,008 samples
+2026-08-04 22:09:22,352 - INFO - Test:  61,503 samples
+2026-08-04 22:09:22,352 - INFO - Calculating class distribution ...
+2026-08-04 22:09:22,352 - INFO - Train: 19,860 defaults (8.07%)
+2026-08-04 22:09:22,353 - INFO - Test: 4,965 defaults (8.07%)
+2026-08-04 22:09:22,353 - INFO - Building preprocessing pipeline ...
+2026-08-04 22:09:22,353 - INFO - Fitting on training data ...
+2026-08-04 22:09:32,613 - INFO - Transforming test data ...
+2026-08-04 22:09:33,398 - INFO - Total features after preprocessing: 230
+2026-08-04 22:09:33,400 - INFO - Saving Artifacts ...
+2026-08-04 22:09:33,408 - INFO - Dumped preprocessor.joblib
+2026-08-04 22:09:37,031 - INFO - Saving X_train.parquet ((246008, 230))
+2026-08-04 22:09:37,031 - INFO - Saving X_test.parquet ((61503, 230))
+2026-08-04 22:09:37,049 - INFO - Saving y_train.parquet, y_test.parquet
+2026-08-04 22:09:37,107 - INFO - Saving train_ids.parquet, test_ids.parquet
+2026-08-04 22:09:37,109 - INFO - Saving feature_names.joblib (230 features)
+2026-08-04 22:09:37,109 - INFO - Done.

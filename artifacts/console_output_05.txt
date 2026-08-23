@@ -1,0 +1,44 @@
+(.venv) C:\Users\rnine\Desktop\HCDProject>c:\Users\rnine\Desktop\HCDProject\.venv\Scripts\python.exe c:/Users/rnine/Desktop/HCDProject/src/05_scorecard.py
+============================================================
+PDO Scorecard Mapping
+============================================================
+  Base Score: 600
+  Base Odds:  50:1
+  PDO:        20
+  Factor:     28.8539
+  Offset:     487.1229
+
+  Score Distribution:
+    Train: min=376, max=645, mean=507, std=33, p25=483, p50=508, p75=530
+    Test: min=393, max=625, mean=507, std=33, p25=484, p50=507, p75=530
+
+  Risk Band Distribution (Test Set):
+    Very Low Risk               0 (  0.0%)
+    Low Risk                    0 (  0.0%)
+    Medium Risk             5,885 (  9.6%)
+    High Risk              52,815 ( 85.9%)
+    Very High Risk          2,803 (  4.6%)
+2026-08-05 20:53:56,973 - INFO - Monotonicity Verification ...
+
+  Decile Analysis (higher decile = higher score = lower risk):
+   Decile    Count   Defaults  Default %        Score Range
+  -------------------------------------------------------
+        0     6390       1877    29.37%    393–463
+        1     6310        980    15.53%    464–478
+        2     6180        615     9.95%    479–489
+        3     5810        418     7.19%    490–498
+        4     6199        336     5.42%    499–507
+        5     6278        249     3.97%    508–516
+        6     6134        210     3.42%    517–525
+        7     5997        126     2.10%    526–535
+        8     6320         90     1.42%    536–549
+        9     5885         64     1.09%    550–625
+2026-08-05 20:53:57,110 - INFO - Monotonicity verified: default rate decreases as score increases
+2026-08-05 20:53:57,111 - INFO - Generating Plots ...
+  Saved plots/score_distribution.png
+  Saved plots/decile_default_rate.png
+2026-08-05 20:53:58,381 - INFO - Saving Artifacts ...
+2026-08-05 20:53:58,389 - INFO - Dumping scorecard.joblib ...
+2026-08-05 20:53:59,035 - INFO - train_scores.parquet (246,008 rows)
+2026-08-05 20:53:59,035 - INFO - test_scores.parquet (61,503 rows)
+2026-08-05 20:53:59,036 - INFO - Done.
