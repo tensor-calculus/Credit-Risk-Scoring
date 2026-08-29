@@ -56,6 +56,13 @@ def load_shap_values():
 def load_model():
     return joblib.load(ARTIFACTS_DIR / "model.joblib")
 
+@st.cache_resource
+def load_expected_value():
+    model = load_model()
+    import shap as shap_lib
+    explainer = shap_lib.TreeExplainer(model)
+    return float(np.atleast_1d(explainer.expected_value)[-1])
+
 @st.cache_data
 def load_metrics():
     with open(ARTIFACTS_DIR / "model_metrics.json", "r") as f:
@@ -125,39 +132,28 @@ with tab1:
         feature_names = load_feature_names()
         features_df = load_features()
 
-        # Build dropdown from SHAP sample so waterfall plots always work
+        # Build dropdown options: SHAP sample IDs first, then remaining IDs
         try:
             shap_vals, shap_idx = load_shap_values()
             shap_ids = test_scores.iloc[shap_idx]["SK_ID_CURR"].tolist()
-            sample_ids = shap_ids[:10]
+            other_ids = [i for i in test_scores["SK_ID_CURR"].tolist() if i not in set(shap_ids)]
+            all_applicant_ids = shap_ids + other_ids
         except Exception:
-            sample_ids = test_scores["SK_ID_CURR"].head(10).tolist()
+            all_applicant_ids = test_scores["SK_ID_CURR"].tolist()
 
-        valid_id_example = sample_ids[0] if sample_ids else "N/A"
-        id_min = int(test_scores["SK_ID_CURR"].min())
-        id_max = int(test_scores["SK_ID_CURR"].max())
+        selected_applicant_id = st.selectbox(
+            "Select Applicant ID (SK_ID_CURR)",
+            options=all_applicant_ids,
+            index=0,
+            help="Select an applicant to view their credit score, risk band, and SHAP feature contributions. Type to search."
+        )
 
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            applicant_id_input = st.text_input(
-                "Enter Applicant ID (SK_ID_CURR)",
-                placeholder=f"e.g., {valid_id_example}  (range: {id_min}–{id_max})",
-            )
-        with col2:
-            selected_example = st.selectbox(
-                "Or select an example (SHAP-ready)",
-                options=[""] + [str(x) for x in sample_ids],
-                index=0,
-            )
-
-        applicant_id = applicant_id_input or selected_example
-
-        if applicant_id:
-            applicant_id = int(applicant_id)
+        if selected_applicant_id:
+            applicant_id = int(selected_applicant_id)
             match = test_scores[test_scores["SK_ID_CURR"] == applicant_id]
 
             if len(match) == 0:
-                st.error(f"Applicant {applicant_id} not found in test set. Try one of the examples.")
+                st.error(f"Applicant {applicant_id} not found in test set.")
             else:
                 row = match.iloc[0]
                 score = int(row["score"])
@@ -223,10 +219,7 @@ with tab1:
                     if len(shap_pos) > 0:
                         import shap as shap_lib
 
-                        model = load_model()
-                        explainer = shap_lib.TreeExplainer(model)
-                        expected_value = explainer.expected_value
-                        expected_value = float(np.atleast_1d(expected_value)[-1])
+                        expected_value = load_expected_value()
 
                         sv = shap_values[shap_pos[0]]
                         explanation = shap_lib.Explanation(
@@ -237,10 +230,12 @@ with tab1:
                             else None,
                             feature_names=feature_names,
                         )
-                        fig, ax = plt.subplots(figsize=(12, 6))
-                        shap_lib.waterfall_plot(explanation, max_display=12, show=False)
-                        st.pyplot(fig, use_container_width=True)
-                        plt.close(fig)
+                        plt.close("all")
+                        fig = plt.figure(figsize=(12, 6))
+                        shap_lib.plots.waterfall(explanation, max_display=12, show=False)
+                        fig = plt.gcf()
+                        st.pyplot(fig)
+                        plt.close("all")
                     else:
                         st.info(
                             "This applicant is not in the SHAP sample. "
