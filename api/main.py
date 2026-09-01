@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
@@ -45,10 +46,13 @@ def predict(data: ApplicantData):
         # Ensure all expected features are present
         missing_cols = set(feature_names) - set(df.columns)
         for col in missing_cols:
-            df[col] = pd.NA
+            df[col] = np.nan
             
         # Reorder to match training
         df = df[feature_names]
+        
+        # Enforce numeric types for all columns to prevent LightGBM object errors
+        df = df.apply(pd.to_numeric, errors='coerce')
         
         # Predict
         probability = model.predict_proba(df)[0, 1]
