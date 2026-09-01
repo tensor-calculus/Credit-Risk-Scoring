@@ -2,6 +2,9 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Install OS dependencies for LightGBM
+RUN apt-get update && apt-get install -y libgomp1 && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
