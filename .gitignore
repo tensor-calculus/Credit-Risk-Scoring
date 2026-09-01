@@ -1,4 +1,9 @@
 .venv
-data
+__pycache__
+.pytest_cache
+data/
+mlruns/
+*.db
 artifacts/*.duckdb
 artifacts/X_train.parquet
+artifacts/y_train.parquet

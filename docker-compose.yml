@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./artifacts:/app/artifacts
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./plots:/app/plots
+    depends_on:
+      - api
