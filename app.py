@@ -12,6 +12,8 @@ import joblib
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
+import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -121,7 +123,9 @@ except Exception:
 
 # Main content
 st.title("Credit Risk Scoring Dashboard")
-tab1, tab2 = st.tabs(["Applicant Lookup", "Portfolio View"])
+tab1, tab2, tab3 = st.tabs(["Applicant Lookup", "Portfolio View", "Live Prediction (API)"])
+
+API_URL = os.getenv("API_URL", "http://api:8000") # Use docker-compose service name as default
 
 
 # ===== TAB 1: Applicant Lookup =====
@@ -357,3 +361,55 @@ with tab2:
     except Exception as e:
         st.error(f"Error: {e}")
         st.info("Make sure you've run all pipeline steps before launching the dashboard.")
+
+# ===== TAB 3: Live Prediction (API) =====
+with tab3:
+    st.subheader("Live Real-Time Prediction")
+    st.write(
+        "This tab demonstrates the decoupled microservice architecture by sending a live "
+        "HTTP POST request to the **FastAPI Backend**."
+    )
+    st.info(f"Currently pointing to API URL: `{API_URL}`")
+
+    try:
+        # Provide a default JSON payload for the user to edit
+        default_payload = {
+            "AMT_INCOME_TOTAL": 150000.0,
+            "AMT_CREDIT": 500000.0,
+            "DAYS_BIRTH": -12000,
+            "DAYS_EMPLOYED": -2000,
+            "EXT_SOURCE_2": 0.5,
+            "EXT_SOURCE_3": 0.5
+        }
+        
+        st.write("Enter applicant features (JSON format):")
+        user_input = st.text_area("Features JSON", value=json.dumps(default_payload, indent=2), height=200)
+        
+        if st.button("🚀 Call API for Prediction"):
+            try:
+                features_dict = json.loads(user_input)
+                payload = {"features": features_dict}
+                
+                with st.spinner("Sending request to FastAPI..."):
+                    response = requests.post(f"{API_URL}/predict", json=payload, timeout=5)
+                    
+                if response.status_code == 200:
+                    result = response.json()
+                    prob = result.get("probability", 0)
+                    st.success("API Request Successful!")
+                    
+                    # Display the result prominently
+                    st.metric("Live Default Probability", f"{prob:.2%}")
+                    st.json(result)
+                else:
+                    st.error(f"API Error ({response.status_code}): {response.text}")
+                    
+            except json.JSONDecodeError:
+                st.error("Invalid JSON format. Please check your input.")
+            except requests.exceptions.ConnectionError:
+                st.error(f"Failed to connect to API at {API_URL}. Is the FastAPI server running?")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+                
+    except Exception as e:
+        st.warning("Could not initialize the prediction tab.")
