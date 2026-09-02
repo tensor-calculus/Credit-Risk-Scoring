@@ -372,44 +372,65 @@ with tab3:
     st.info(f"Currently pointing to API URL: `{API_URL}`")
 
     try:
-        # Provide a default JSON payload for the user to edit
-        default_payload = {
-            "AMT_INCOME_TOTAL": 150000.0,
-            "AMT_CREDIT": 500000.0,
-            "DAYS_BIRTH": -12000,
-            "DAYS_EMPLOYED": -2000,
-            "EXT_SOURCE_2": 0.5,
-            "EXT_SOURCE_3": 0.5
-        }
+        X_test, y_test, test_ids = load_test_data()
         
-        st.write("Enter applicant features (JSON format):")
-        user_input = st.text_area("Features JSON", value=json.dumps(default_payload, indent=2), height=200)
+        # Select an applicant to serve as the baseline
+        sample_id = st.selectbox(
+            "Select a Base Applicant to Tweak (SK_ID_CURR):", 
+            options=test_ids["SK_ID_CURR"].tolist()[:1000],  # Limit to first 1000 for speed
+            help="This loads all 230 features for this applicant in the background."
+        )
         
-        if st.button("🚀 Call API for Prediction"):
-            try:
-                features_dict = json.loads(user_input)
-                payload = {"features": features_dict}
+        if sample_id:
+            idx = test_ids[test_ids["SK_ID_CURR"] == sample_id].index[0]
+            # Convert to dict, handling NaNs correctly for JSON
+            base_features_json = X_test.iloc[[idx]].to_json(orient="records")
+            base_features = json.loads(base_features_json)[0]
+            
+            st.write("### Tweak Key Features")
+            st.write("Modify the key features below. The other 224 features will remain unchanged from the real applicant, ensuring realistic model behavior!")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                income = st.number_input("AMT_INCOME_TOTAL", value=float(base_features.get("AMT_INCOME_TOTAL") or 150000.0))
+                credit = st.number_input("AMT_CREDIT", value=float(base_features.get("AMT_CREDIT") or 500000.0))
+                ext2 = st.slider("EXT_SOURCE_2", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_2") or 0.5))
                 
-                with st.spinner("Sending request to FastAPI..."):
-                    response = requests.post(f"{API_URL}/predict", json=payload, timeout=5)
+            with col2:
+                days_birth = st.number_input("DAYS_BIRTH (Age in negative days)", value=int(base_features.get("DAYS_BIRTH") or -12000))
+                days_employed = st.number_input("DAYS_EMPLOYED", value=int(base_features.get("DAYS_EMPLOYED") or -2000))
+                ext3 = st.slider("EXT_SOURCE_3", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_3") or 0.5))
+            
+            if st.button("🚀 Call API for Prediction"):
+                try:
+                    # Update base features with the tweaked ones
+                    base_features["AMT_INCOME_TOTAL"] = income
+                    base_features["AMT_CREDIT"] = credit
+                    base_features["DAYS_BIRTH"] = days_birth
+                    base_features["DAYS_EMPLOYED"] = days_employed
+                    base_features["EXT_SOURCE_2"] = ext2
+                    base_features["EXT_SOURCE_3"] = ext3
                     
-                if response.status_code == 200:
-                    result = response.json()
-                    prob = result.get("probability", 0)
-                    st.success("API Request Successful!")
+                    payload = {"features": base_features}
                     
-                    # Display the result prominently
-                    st.metric("Live Default Probability", f"{prob:.2%}")
-                    st.json(result)
-                else:
-                    st.error(f"API Error ({response.status_code}): {response.text}")
-                    
-            except json.JSONDecodeError:
-                st.error("Invalid JSON format. Please check your input.")
-            except requests.exceptions.ConnectionError:
-                st.error(f"Failed to connect to API at {API_URL}. Is the FastAPI server running?")
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
+                    with st.spinner("Sending request to FastAPI..."):
+                        response = requests.post(f"{API_URL}/predict", json=payload, timeout=5)
+                        
+                    if response.status_code == 200:
+                        result = response.json()
+                        prob = result.get("probability", 0)
+                        st.success("API Request Successful!")
+                        
+                        # Display the result prominently
+                        st.metric("Live Default Probability", f"{prob:.2%}")
+                    else:
+                        st.error(f"API Error ({response.status_code}): {response.text}")
+                        
+                except requests.exceptions.ConnectionError:
+                    st.error(f"Failed to connect to API at {API_URL}. Is the FastAPI server running?")
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
                 
     except Exception as e:
-        st.warning("Could not initialize the prediction tab.")
+        st.warning(f"Could not initialize the prediction tab: {e}")
