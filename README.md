@@ -7,6 +7,7 @@ An end-to-end credit risk scoring pipeline built on the **Home Credit Default Ri
 - **Workflow Orchestration:** Prefect DAG for automated and resilient pipeline execution.
 - **SQL Feature Engineering:** Uses DuckDB to aggregate multi-table relational data (bureau, installments, etc.).
 - **Machine Learning:** LightGBM classifier tuned with Optuna for handling imbalanced classes.
+- **Credit Scoring (PDO):** Industry-standard Points to Double the Odds (PDO) methodology. (Base Score = 600, Base Odds = 50:1, PDO = 20) with dynamically scaled risk bands.
 - **Explainability:** SHAP values for model transparency and reason code generation.
 - **CI/CD & Docker:** GitHub actions for automated testing/linting and Dockerized components for easy deployment.
 
