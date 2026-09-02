@@ -43,7 +43,7 @@ def probability_to_score(probability, base_score=BASE_SCORE, base_odds=BASE_ODDS
     offset = base_score - factor * np.log(base_odds)
 
     # Clip probability to avoid log(0) or log(inf)
-    p = np.clip(probability, 0.001, 0.999)
+    p = np.clip(probability, 1e-6, 0.999)
     odds = (1 - p) / p
     score = offset + factor * np.log(odds)
     return np.round(score).astype(int)
@@ -53,19 +53,19 @@ def assign_risk_band(score):
     """Assign risk band based on credit score."""
     if isinstance(score, (np.ndarray, pd.Series)):
         conditions = [
-            score < 450,
-            (score >= 450) & (score < 550),
-            (score >= 550) & (score < 650),
-            (score >= 650) & (score < 750),
-            score >= 750,
+            score < 475,
+            (score >= 475) & (score < 500),
+            (score >= 500) & (score < 525),
+            (score >= 525) & (score < 550),
+            score >= 550,
         ]
         choices = ["Very High Risk", "High Risk", "Medium Risk", "Low Risk", "Very Low Risk"]
         return np.select(conditions, choices, default="Unknown")
     else:
-        if score < 450: return "Very High Risk"
-        if score < 550: return "High Risk"
-        if score < 650: return "Medium Risk"
-        if score < 750: return "Low Risk"
+        if score < 475: return "Very High Risk"
+        if score < 500: return "High Risk"
+        if score < 525: return "Medium Risk"
+        if score < 550: return "Low Risk"
         return "Very Low Risk"
 
 
