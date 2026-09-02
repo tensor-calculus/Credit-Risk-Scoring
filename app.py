@@ -390,19 +390,22 @@ with tab3:
             st.write("### Tweak Key Features")
             st.write("Modify the key features below. The other 224 features will remain unchanged from the real applicant, ensuring realistic model behavior!")
             
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                income = st.number_input("AMT_INCOME_TOTAL", value=float(base_features.get("AMT_INCOME_TOTAL") or 150000.0))
-                credit = st.number_input("AMT_CREDIT", value=float(base_features.get("AMT_CREDIT") or 500000.0))
-                ext2 = st.slider("EXT_SOURCE_2", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_2") or 0.5))
+            with st.form("prediction_form"):
+                col1, col2 = st.columns(2)
                 
-            with col2:
-                days_birth = st.number_input("DAYS_BIRTH (Age in negative days)", value=int(base_features.get("DAYS_BIRTH") or -12000))
-                days_employed = st.number_input("DAYS_EMPLOYED", value=int(base_features.get("DAYS_EMPLOYED") or -2000))
-                ext3 = st.slider("EXT_SOURCE_3", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_3") or 0.5))
+                with col1:
+                    income = st.number_input("AMT_INCOME_TOTAL", value=float(base_features.get("AMT_INCOME_TOTAL") or 150000.0))
+                    credit = st.number_input("AMT_CREDIT", value=float(base_features.get("AMT_CREDIT") or 500000.0))
+                    ext2 = st.slider("EXT_SOURCE_2", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_2") or 0.5))
+                    
+                with col2:
+                    days_birth = st.number_input("DAYS_BIRTH (Age in negative days)", value=int(base_features.get("DAYS_BIRTH") or -12000))
+                    days_employed = st.number_input("DAYS_EMPLOYED", value=int(base_features.get("DAYS_EMPLOYED") or -2000))
+                    ext3 = st.slider("EXT_SOURCE_3", min_value=0.0, max_value=1.0, value=float(base_features.get("EXT_SOURCE_3") or 0.5))
+                
+                submit_button = st.form_submit_button("🚀 Call API for Prediction")
             
-            if st.button("🚀 Call API for Prediction"):
+            if submit_button:
                 try:
                     # Update base features with the tweaked ones
                     base_features["AMT_INCOME_TOTAL"] = income
