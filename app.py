@@ -168,7 +168,7 @@ with tab1:
                 st.divider()
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric("Credit Score", f"{score}", help="Range: 300–900")
+                    st.metric("Credit Score", f"{score}", help="Range: 300–850")
                 with col2:
                     st.metric("Risk Band", risk_band)
                     st.caption(f"Default probability: {probability:.2%}")

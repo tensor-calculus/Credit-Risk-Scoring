@@ -27,7 +27,7 @@
 | **KS-Statistic** | Maximum separation between cumulative distributions of positives and negatives |
 | **Gini Coefficient** | 2 × AUC − 1; standard credit risk metric |
 | **Brier Score** | Calibration quality measure |
-| **PDO Scorecard** | Probability mapped to 300–900 range using Points to Double the Odds methodology |
+| **PDO Scorecard** | Probability mapped to 300–850 range using Points to Double the Odds methodology with Bayes calibration |
 
 ### Explainability
 - SHAP TreeExplainer provides both global feature importance and per-applicant explanations

@@ -1,9 +1,9 @@
 """
 05_scorecard.py - PDO Scorecard Mapping
-Maps predicted default probabilities to a 300-900 credit score using
-Points to Double the Odds (PDO) methodology.
+Maps predicted default probabilities to a 300-850 credit score using
+Points to Double the Odds (PDO) methodology with scale_pos_weight calibration.
 Parameters:
-  Base score = 600, Base odds = 50:1 (good:bad), PDO = 20
+  Base score = 650, Base odds = 11.5:1 (good:bad), PDO = 40, Range = [300, 850]
   Score = Offset + Factor * ln(odds)
   where odds = (1 - p) / p, Factor = PDO / ln(2), Offset = base_score - Factor * ln(base_odds)
 """
@@ -26,14 +26,26 @@ ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 PLOTS_DIR = PROJECT_ROOT / "plots"
 
 # PDO scorecard parameters
-BASE_SCORE = 600
-BASE_ODDS = 50   # 50:1 good to bad
-PDO = 20         # Points to Double the Odds
+BASE_SCORE = 650
+BASE_ODDS = 11.5   # ~8% default rate corresponds to ~11.5:1 good to bad odds
+PDO = 40          # Points to Double the Odds
+MIN_SCORE = 300
+MAX_SCORE = 850
 
 
-def probability_to_score(probability, base_score=BASE_SCORE, base_odds=BASE_ODDS, pdo=PDO):
+def calibrate_probability(prob, scale_pos_weight):
     """
-    Convert default probability to credit score using PDO methodology.
+    Calibrate model pseudo-probabilities back to true empirical probabilities
+    using Bayes odds correction for scale_pos_weight:
+      p_true = p / (p + (1 - p) * scale_pos_weight)
+    """
+    p = np.clip(prob, 1e-7, 1 - 1e-7)
+    return p / (p + (1.0 - p) * scale_pos_weight)
+
+
+def probability_to_score(probability, base_score=BASE_SCORE, base_odds=BASE_ODDS, pdo=PDO, min_score=MIN_SCORE, max_score=MAX_SCORE):
+    """
+    Convert calibrated default probability to credit score using PDO methodology.
 
     Higher score = lower risk (better).
     Score = Offset + Factor * ln(odds)
@@ -42,30 +54,29 @@ def probability_to_score(probability, base_score=BASE_SCORE, base_odds=BASE_ODDS
     factor = pdo / np.log(2)
     offset = base_score - factor * np.log(base_odds)
 
-    # Clip probability to avoid log(0) or log(inf)
-    p = np.clip(probability, 1e-6, 0.999)
-    odds = (1 - p) / p
+    p = np.clip(probability, 1e-7, 1 - 1e-7)
+    odds = (1.0 - p) / p
     score = offset + factor * np.log(odds)
-    return np.round(score).astype(int)
+    return np.clip(np.round(score).astype(int), min_score, max_score)
 
 
 def assign_risk_band(score):
-    """Assign risk band based on credit score."""
+    """Assign risk band based on standard credit score tiers (300-850 range)."""
     if isinstance(score, (np.ndarray, pd.Series)):
         conditions = [
-            score < 475,
-            (score >= 475) & (score < 500),
-            (score >= 500) & (score < 525),
-            (score >= 525) & (score < 550),
-            score >= 550,
+            score < 580,
+            (score >= 580) & (score < 640),
+            (score >= 640) & (score < 700),
+            (score >= 700) & (score < 750),
+            score >= 750,
         ]
         choices = ["Very High Risk", "High Risk", "Medium Risk", "Low Risk", "Very Low Risk"]
         return np.select(conditions, choices, default="Unknown")
     else:
-        if score < 475: return "Very High Risk"
-        if score < 500: return "High Risk"
-        if score < 525: return "Medium Risk"
-        if score < 550: return "Low Risk"
+        if score < 580: return "Very High Risk"
+        if score < 640: return "High Risk"
+        if score < 700: return "Medium Risk"
+        if score < 750: return "Low Risk"
         return "Very Low Risk"
 
 
@@ -150,21 +161,32 @@ def main() -> None:
     train_ids = pd.read_parquet(ARTIFACTS_DIR / "train_ids.parquet")["SK_ID_CURR"].values
     test_ids = pd.read_parquet(ARTIFACTS_DIR / "test_ids.parquet")["SK_ID_CURR"].values
 
-    # Predict probabilities
-    train_proba = model.predict_proba(X_train.values)[:, 1]
-    test_proba = model.predict_proba(X_test.values)[:, 1]
+    # Compute scale_pos_weight from training set
+    n_neg = np.sum(y_train == 0)
+    n_pos = np.sum(y_train == 1)
+    scale_pos_weight = n_neg / n_pos
+
+    # Predict raw model probabilities
+    train_proba_raw = model.predict_proba(X_train.values)[:, 1]
+    test_proba_raw = model.predict_proba(X_test.values)[:, 1]
+
+    # Calibrate probabilities to reflect true empirical default rates
+    train_proba = calibrate_probability(train_proba_raw, scale_pos_weight)
+    test_proba = calibrate_probability(test_proba_raw, scale_pos_weight)
 
     # Convert to scores
     print("=" * 60)
-    print("PDO Scorecard Mapping")
+    print("PDO Scorecard Mapping (Calibrated)")
     print("=" * 60)
     factor = PDO / np.log(2)
     offset = BASE_SCORE - factor * np.log(BASE_ODDS)
-    print(f"  Base Score: {BASE_SCORE}")
-    print(f"  Base Odds:  {BASE_ODDS}:1")
-    print(f"  PDO:        {PDO}")
-    print(f"  Factor:     {factor:.4f}")
-    print(f"  Offset:     {offset:.4f}")
+    print(f"  Scale Pos Weight: {scale_pos_weight:.2f}")
+    print(f"  Base Score:       {BASE_SCORE}")
+    print(f"  Base Odds:        {BASE_ODDS}:1")
+    print(f"  PDO:              {PDO}")
+    print(f"  Factor:           {factor:.4f}")
+    print(f"  Offset:           {offset:.4f}")
+    print(f"  Score Range:      [{MIN_SCORE}, {MAX_SCORE}]")
 
     train_scores = probability_to_score(train_proba)
     test_scores = probability_to_score(test_proba)
@@ -177,7 +199,7 @@ def main() -> None:
               f"p25={np.percentile(scores, 25):.0f}, p50={np.percentile(scores, 50):.0f}, "
               f"p75={np.percentile(scores, 75):.0f}")
 
-    # Assign risk bands
+    # Risk band distribution
     train_bands = assign_risk_band(train_scores)
     test_bands = assign_risk_band(test_scores)
 
@@ -205,6 +227,9 @@ def main() -> None:
         "pdo": PDO,
         "factor": factor,
         "offset": offset,
+        "scale_pos_weight": scale_pos_weight,
+        "min_score": MIN_SCORE,
+        "max_score": MAX_SCORE,
     }
     joblib.dump(scorecard_config, ARTIFACTS_DIR / "scorecard.joblib")
     logging.info(f"Dumping scorecard.joblib ...")
