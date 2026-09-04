@@ -55,7 +55,7 @@ def predict(data: ApplicantData):
         df = df.apply(pd.to_numeric, errors='coerce')
         
         # Predict
-        probability = model.predict_proba(df)[0, 1]
+        probability = model.predict_proba(df.values)[0, 1]
         
         return {
             "probability": float(probability)
